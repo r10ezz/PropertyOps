@@ -6,9 +6,21 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').notNullable()
+      table
+        .integer('organization_id')
+        .unsigned()
+        .references('id')
+        .inTable('organizations')
+        .onDelete('CASCADE')
+        .nullable()
+        .index()
+
       table.string('full_name').nullable()
       table.string('email', 254).notNullable().unique()
       table.string('password').notNullable()
+      table.string('role', 50).notNullable().defaultTo('property_manager')
+      table.string('phone', 50).nullable()
+      table.string('status', 30).notNullable().defaultTo('active')
 
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').nullable()
