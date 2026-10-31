@@ -65,8 +65,8 @@ Frontend development server will start at `http://localhost:5173`.
 ## 📋 Implementation Roadmap
 
 - [x] **Phase 1: Planning and Setup** (Architecture, schema design, dual-app setup, PostgreSQL connection)
-- [ ] **Phase 2: Database and Backend Foundation** (Organizations, Properties & Units schema, seeders, CRUD APIs)
-- [ ] **Phase 3: Frontend Foundation** (App layout, Sidebar, Dashboard metrics, Property/Unit views)
+- [x] **Phase 2: Database and Backend Foundation** (Organizations, Properties & Units schema, seeders, CRUD APIs)
+- [x] **Phase 3: Frontend Foundation** (App layout, Sidebar, Dashboard metrics, Property/Unit views)
 - [ ] **Phase 4: Authentication & Authorization** (Access tokens, Tenant isolation middleware, RBAC guards)
 - [ ] **Phase 5: Residents & Maintenance Management** (Lease rosters, interactive ticket Kanban, status workflows)
 - [ ] **Phase 6: Testing & Polish** (API integration tests, loading skeletons, error boundaries, empty states)
