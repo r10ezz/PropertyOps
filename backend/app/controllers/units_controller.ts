@@ -6,15 +6,18 @@ import { createUnitValidator, updateUnitValidator } from '#validators/unit'
 export default class UnitsController {
   /**
    * Display a list of units with filters for property, status, or search
+   * Scoped to the authenticated user's organization tenant
    */
-  async index({ request, response }: HttpContext) {
+  async index({ auth, request, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
     const page = request.input('page', 1)
-    const limit = request.input('limit', 20)
+    const limit = request.input('limit', 50)
     const propertyId = request.input('propertyId')
     const status = request.input('status')
     const search = request.input('search', '').trim()
 
     const query = Unit.query()
+      .whereHas('property', (pq) => pq.where('organization_id', orgId))
       .preload('property')
       .orderBy('unit_number', 'asc')
 
@@ -40,19 +43,24 @@ export default class UnitsController {
   }
 
   /**
-   * Create a new unit under a property
+   * Create a new unit under a tenant property
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
     const payload = await request.validateUsing(createUnitValidator)
 
-    // Verify property exists
-    const property = await Property.find(payload.propertyId)
+    // Verify property exists and belongs to the user's organization
+    const property = await Property.query()
+      .where('id', payload.propertyId)
+      .where('organization_id', orgId)
+      .first()
+
     if (!property) {
       return response.notFound({
         success: false,
         error: {
           code: 'PROPERTY_NOT_FOUND',
-          message: `Parent property with ID ${payload.propertyId} does not exist.`,
+          message: `Parent property with ID ${payload.propertyId} does not exist in your organization.`,
         },
       })
     }
@@ -84,11 +92,13 @@ export default class UnitsController {
   }
 
   /**
-   * Show details of a single unit
+   * Show details of a single unit (Tenant scoped)
    */
-  async show({ params, response }: HttpContext) {
+  async show({ auth, params, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
     const unit = await Unit.query()
       .where('id', params.id)
+      .whereHas('property', (pq) => pq.where('organization_id', orgId))
       .preload('property')
       .first()
 
@@ -97,7 +107,7 @@ export default class UnitsController {
         success: false,
         error: {
           code: 'UNIT_NOT_FOUND',
-          message: `Unit with ID ${params.id} does not exist.`,
+          message: `Unit with ID ${params.id} does not exist in your organization.`,
         },
       })
     }
@@ -109,17 +119,21 @@ export default class UnitsController {
   }
 
   /**
-   * Update an existing unit
+   * Update an existing unit (Tenant scoped)
    */
-  async update({ params, request, response }: HttpContext) {
-    const unit = await Unit.find(params.id)
+  async update({ auth, params, request, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
+    const unit = await Unit.query()
+      .where('id', params.id)
+      .whereHas('property', (pq) => pq.where('organization_id', orgId))
+      .first()
 
     if (!unit) {
       return response.notFound({
         success: false,
         error: {
           code: 'UNIT_NOT_FOUND',
-          message: `Unit with ID ${params.id} does not exist.`,
+          message: `Unit with ID ${params.id} does not exist in your organization.`,
         },
       })
     }
@@ -131,6 +145,24 @@ export default class UnitsController {
     const targetUnitNumber = payload.unitNumber ?? unit.unitNumber
 
     if (payload.unitNumber || payload.propertyId) {
+      // If property changed, verify target property also belongs to org
+      if (payload.propertyId && payload.propertyId !== unit.propertyId) {
+        const targetProperty = await Property.query()
+          .where('id', payload.propertyId)
+          .where('organization_id', orgId)
+          .first()
+
+        if (!targetProperty) {
+          return response.notFound({
+            success: false,
+            error: {
+              code: 'PROPERTY_NOT_FOUND',
+              message: `Target property with ID ${payload.propertyId} does not exist in your organization.`,
+            },
+          })
+        }
+      }
+
       const duplicate = await Unit.query()
         .where('property_id', targetPropertyId)
         .where('unit_number', targetUnitNumber)
@@ -160,17 +192,21 @@ export default class UnitsController {
   }
 
   /**
-   * Delete a unit
+   * Delete a unit (Tenant scoped)
    */
-  async destroy({ params, response }: HttpContext) {
-    const unit = await Unit.find(params.id)
+  async destroy({ auth, params, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
+    const unit = await Unit.query()
+      .where('id', params.id)
+      .whereHas('property', (pq) => pq.where('organization_id', orgId))
+      .first()
 
     if (!unit) {
       return response.notFound({
         success: false,
         error: {
           code: 'UNIT_NOT_FOUND',
-          message: `Unit with ID ${params.id} does not exist.`,
+          message: `Unit with ID ${params.id} does not exist in your organization.`,
         },
       })
     }

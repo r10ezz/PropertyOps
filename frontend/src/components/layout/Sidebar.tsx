@@ -7,7 +7,10 @@ import {
   Users,
   Wrench,
   Shield,
+  LogOut,
+  UserCheck,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 interface NavItem {
   name: string
@@ -25,6 +28,20 @@ const navItems: NavItem[] = [
 ]
 
 export const Sidebar: React.FC = () => {
+  const { user, logout } = useAuth()
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'PO'
+    return name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const organizationName = user?.organization?.name || 'Skyline Living Residences'
+
   return (
     <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col shrink-0 min-h-screen">
       {/* Brand Header */}
@@ -48,9 +65,11 @@ export const Sidebar: React.FC = () => {
           <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
           <div className="truncate">
             <div className="text-xs font-semibold text-slate-200 truncate">
-              Skyline Living Residences
+              {organizationName}
             </div>
-            <div className="text-[10px] text-slate-400">Org ID #1 &bull; Active Tenant</div>
+            <div className="text-[10px] text-slate-400">
+              Org #{user?.organizationId || 1} &bull; Active Tenant
+            </div>
           </div>
         </div>
       </div>
@@ -89,20 +108,34 @@ export const Sidebar: React.FC = () => {
         })}
       </div>
 
-      {/* User Footer Profile */}
+      {/* User Footer Profile & Sign Out */}
       <div className="p-4 border-t border-slate-800 bg-slate-950/40 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-            AM
+        <div className="flex items-center space-x-3 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0">
+            {getInitials(user?.fullName)}
           </div>
-          <div className="text-left">
-            <div className="text-xs font-semibold text-white">Alex Morgan</div>
-            <div className="text-[10px] text-slate-400 flex items-center gap-1">
-              <Shield className="w-3 h-3 text-brand-400" />
-              <span>Admin</span>
+          <div className="text-left truncate">
+            <div className="text-xs font-semibold text-white truncate">
+              {user?.fullName || 'User'}
+            </div>
+            <div className="text-[10px] text-slate-400 flex items-center gap-1 capitalize">
+              {user?.role === 'admin' ? (
+                <Shield className="w-3 h-3 text-brand-400 shrink-0" />
+              ) : (
+                <UserCheck className="w-3 h-3 text-indigo-400 shrink-0" />
+              )}
+              <span>{user?.role?.replace('_', ' ') || 'Staff'}</span>
             </div>
           </div>
         </div>
+
+        <button
+          onClick={logout}
+          className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-900 transition"
+          title="Sign Out"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </aside>
   )

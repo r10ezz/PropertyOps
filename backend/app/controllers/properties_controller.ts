@@ -5,13 +5,16 @@ import { createPropertyValidator, updatePropertyValidator } from '#validators/pr
 export default class PropertiesController {
   /**
    * Display a list of properties with unit rollups and optional search
+   * Scoped to the authenticated user's organization tenant
    */
-  async index({ request, response }: HttpContext) {
+  async index({ auth, request, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
     const page = request.input('page', 1)
     const limit = request.input('limit', 10)
     const search = request.input('search', '').trim()
 
     const query = Property.query()
+      .where('organization_id', orgId)
       .preload('units')
       .orderBy('created_at', 'desc')
 
@@ -55,14 +58,15 @@ export default class PropertiesController {
   }
 
   /**
-   * Create a new property
+   * Create a new property scoped to the authenticated user's organization
    */
-  async store({ request, response }: HttpContext) {
+  async store({ auth, request, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
     const payload = await request.validateUsing(createPropertyValidator)
 
     const property = await Property.create({
       ...payload,
-      organizationId: 1, // Default tenant organization for development
+      organizationId: orgId,
     })
 
     await property.load('units')
@@ -75,11 +79,13 @@ export default class PropertiesController {
   }
 
   /**
-   * Show details of a single property with units
+   * Show details of a single property with units (Tenant scoped)
    */
-  async show({ params, response }: HttpContext) {
+  async show({ auth, params, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
     const property = await Property.query()
       .where('id', params.id)
+      .where('organization_id', orgId)
       .preload('units', (q) => q.orderBy('unit_number', 'asc'))
       .first()
 
@@ -88,7 +94,7 @@ export default class PropertiesController {
         success: false,
         error: {
           code: 'PROPERTY_NOT_FOUND',
-          message: `Property with ID ${params.id} does not exist.`,
+          message: `Property with ID ${params.id} does not exist in your organization.`,
         },
       })
     }
@@ -116,17 +122,21 @@ export default class PropertiesController {
   }
 
   /**
-   * Update an existing property
+   * Update an existing property (Tenant scoped)
    */
-  async update({ params, request, response }: HttpContext) {
-    const property = await Property.find(params.id)
+  async update({ auth, params, request, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
+    const property = await Property.query()
+      .where('id', params.id)
+      .where('organization_id', orgId)
+      .first()
 
     if (!property) {
       return response.notFound({
         success: false,
         error: {
           code: 'PROPERTY_NOT_FOUND',
-          message: `Property with ID ${params.id} does not exist.`,
+          message: `Property with ID ${params.id} does not exist in your organization.`,
         },
       })
     }
@@ -144,17 +154,21 @@ export default class PropertiesController {
   }
 
   /**
-   * Delete a property
+   * Delete a property (Tenant scoped)
    */
-  async destroy({ params, response }: HttpContext) {
-    const property = await Property.find(params.id)
+  async destroy({ auth, params, response }: HttpContext) {
+    const orgId = auth.user!.organizationId!
+    const property = await Property.query()
+      .where('id', params.id)
+      .where('organization_id', orgId)
+      .first()
 
     if (!property) {
       return response.notFound({
         success: false,
         error: {
           code: 'PROPERTY_NOT_FOUND',
-          message: `Property with ID ${params.id} does not exist.`,
+          message: `Property with ID ${params.id} does not exist in your organization.`,
         },
       })
     }

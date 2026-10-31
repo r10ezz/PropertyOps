@@ -1,5 +1,8 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { LoginPage } from './pages/LoginPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { PropertiesPage } from './pages/PropertiesPage'
@@ -55,16 +58,30 @@ const MaintenancePlaceholder: React.FC = () => (
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/properties" element={<PropertiesPage />} />
-          <Route path="/units" element={<UnitsPage />} />
-          <Route path="/residents" element={<ResidentsPlaceholder />} />
-          <Route path="/maintenance" element={<MaintenancePlaceholder />} />
+      <AuthProvider>
+        <Routes>
+          {/* Public Login Route */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Protected Application Routes */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/properties" element={<PropertiesPage />} />
+            <Route path="/units" element={<UnitsPage />} />
+            <Route path="/residents" element={<ResidentsPlaceholder />} />
+            <Route path="/maintenance" element={<MaintenancePlaceholder />} />
+          </Route>
+
+          {/* Catch-all Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

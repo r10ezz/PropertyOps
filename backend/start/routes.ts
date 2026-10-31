@@ -8,7 +8,9 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
+const AuthController = () => import('#controllers/auth_controller')
 const PropertiesController = () => import('#controllers/properties_controller')
 const UnitsController = () => import('#controllers/units_controller')
 
@@ -27,18 +29,55 @@ router.get('/', async () => {
 // REST API v1 Group
 router
   .group(() => {
-    // Properties Endpoints
-    router.get('/properties', [PropertiesController, 'index'])
-    router.post('/properties', [PropertiesController, 'store'])
-    router.get('/properties/:id', [PropertiesController, 'show'])
-    router.put('/properties/:id', [PropertiesController, 'update'])
-    router.delete('/properties/:id', [PropertiesController, 'destroy'])
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Endpoints (Public & Protected)
+    |--------------------------------------------------------------------------
+    */
+    router.post('/auth/login', [AuthController, 'login'])
 
-    // Units Endpoints
-    router.get('/units', [UnitsController, 'index'])
-    router.post('/units', [UnitsController, 'store'])
-    router.get('/units/:id', [UnitsController, 'show'])
-    router.put('/units/:id', [UnitsController, 'update'])
-    router.delete('/units/:id', [UnitsController, 'destroy'])
+    router
+      .group(() => {
+        router.post('/auth/logout', [AuthController, 'logout'])
+        router.get('/auth/me', [AuthController, 'me'])
+      })
+      .use(middleware.auth())
+
+    /*
+    |--------------------------------------------------------------------------
+    | Property Management Endpoints (Tenant Scoped & Role Protected)
+    |--------------------------------------------------------------------------
+    */
+    router
+      .group(() => {
+        // Properties CRUD
+        router.get('/properties', [PropertiesController, 'index'])
+        router.post('/properties', [PropertiesController, 'store']).use(
+          middleware.role(['admin', 'property_manager'])
+        )
+        router.get('/properties/:id', [PropertiesController, 'show'])
+        router.put('/properties/:id', [PropertiesController, 'update']).use(
+          middleware.role(['admin', 'property_manager'])
+        )
+        // Only Admin can delete properties
+        router.delete('/properties/:id', [PropertiesController, 'destroy']).use(
+          middleware.role(['admin'])
+        )
+
+        // Units CRUD
+        router.get('/units', [UnitsController, 'index'])
+        router.post('/units', [UnitsController, 'store']).use(
+          middleware.role(['admin', 'property_manager'])
+        )
+        router.get('/units/:id', [UnitsController, 'show'])
+        router.put('/units/:id', [UnitsController, 'update']).use(
+          middleware.role(['admin', 'property_manager'])
+        )
+        // Only Admin can delete units
+        router.delete('/units/:id', [UnitsController, 'destroy']).use(
+          middleware.role(['admin'])
+        )
+      })
+      .use([middleware.auth(), middleware.tenant()])
   })
   .prefix('/api/v1')

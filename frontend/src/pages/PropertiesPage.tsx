@@ -16,9 +16,11 @@ import { Modal } from '../components/common/Modal'
 import { EmptyState } from '../components/common/EmptyState'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { propertyService } from '../services/propertyService'
+import { useAuth } from '../context/AuthContext'
 import type { Property, CreatePropertyInput, PropertyType } from '../types/property'
 
 export const PropertiesPage: React.FC = () => {
+  const { user } = useAuth()
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -312,13 +314,22 @@ export const PropertiesPage: React.FC = () => {
                       <span>View Units ({stats.totalUnits})</span>
                     </Link>
 
-                    <button
-                      onClick={() => handleDeleteProperty(prop.id, prop.name)}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
-                      title="Delete Property"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {user?.role === 'admin' ? (
+                      <button
+                        onClick={() => handleDeleteProperty(prop.id, prop.name)}
+                        className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
+                        title="Delete Property (Admin only)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <span
+                        className="p-1.5 text-slate-600 cursor-not-allowed"
+                        title="Deletion restricted to Admin role"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </span>
+                    )}
                   </div>
                 </div>
               )

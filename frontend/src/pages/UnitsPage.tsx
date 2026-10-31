@@ -15,10 +15,12 @@ import { EmptyState } from '../components/common/EmptyState'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { unitService } from '../services/unitService'
 import { propertyService } from '../services/propertyService'
+import { useAuth } from '../context/AuthContext'
 import type { Unit, CreateUnitInput, UnitStatus } from '../types/unit'
 import type { Property } from '../types/property'
 
 export const UnitsPage: React.FC = () => {
+  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialPropertyId = searchParams.get('propertyId')
 
@@ -342,13 +344,22 @@ export const UnitsPage: React.FC = () => {
 
                       {/* Actions */}
                       <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={() => handleDeleteUnit(unit.id, unit.unitNumber)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
-                          title="Delete Unit"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {user?.role === 'admin' ? (
+                          <button
+                            onClick={() => handleDeleteUnit(unit.id, unit.unitNumber)}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
+                            title="Delete Unit (Admin only)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span
+                            className="p-1.5 text-slate-600 cursor-not-allowed"
+                            title="Deletion restricted to Admin role"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
